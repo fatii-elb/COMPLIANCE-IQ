@@ -1,0 +1,18 @@
+# =====================================================
+# CODEOWNERS
+# ComplianceIQ Project
+# =====================================================
+
+# AI (Fatima Ezzahra El Boudhiri)
+/ai-service/          @fatii-elb
+/frontend/ai/         @fatii-elb
+
+# Platform & Infrastructure (Khadija)
+/core-service/        @lakbita-khadija
+/frontend/dashboard/  @lakbita-khadija
+/infra/               @lakbita-khadija
+
+# Shared ownership
+/contracts/           @fatii-elb @lakbita-khadija
+/docs/                @fatii-elb @lakbita-khadija
+/.github/             @fatii-elb @lakbita-khadija
