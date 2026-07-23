@@ -1,0 +1,68 @@
+# Import Linter contracts — automated enforcement of Clean Architecture.
+# Run with: `lint-imports`. Wired into CI so the dependency rule cannot decay.
+#
+# The dependency rule: dependencies point INWARD only.
+#
+#     presentation ─┐
+#                   ├─► application ─► domain
+#     infrastructure ┘
+#
+# - domain depends on nothing in the project (and nothing beyond stdlib + Pydantic).
+# - application may import domain, nothing outer.
+# - presentation and infrastructure are independent sibling adapters: neither may
+#   import the other. They are wired together only at the composition root
+#   (complianceiq.composition), which sits outside the four layers.
+
+[importlinter]
+root_package = complianceiq
+# Required so `forbidden` contracts can name third-party packages (fastapi,
+# sqlalchemy, anthropic, …) as forbidden imports from the inner layers.
+include_external_packages = True
+
+[importlinter:contract:core-layers]
+name = application depends on domain, never the reverse
+type = layers
+layers =
+    complianceiq.application
+    complianceiq.domain
+
+[importlinter:contract:domain-is-pure]
+name = Domain imports neither inner-project layers nor adapter frameworks
+type = forbidden
+source_modules =
+    complianceiq.domain
+forbidden_modules =
+    complianceiq.application
+    complianceiq.infrastructure
+    complianceiq.presentation
+    fastapi
+    starlette
+    uvicorn
+    sqlalchemy
+    anthropic
+    langgraph
+    langchain
+    httpx
+    reportlab
+
+[importlinter:contract:application-is-framework-free]
+name = Application imports no outer layers or adapter frameworks
+type = forbidden
+source_modules =
+    complianceiq.application
+forbidden_modules =
+    complianceiq.infrastructure
+    complianceiq.presentation
+    fastapi
+    starlette
+    uvicorn
+    sqlalchemy
+    anthropic
+    reportlab
+
+[importlinter:contract:adapters-are-independent]
+name = presentation and infrastructure must not import each other
+type = independence
+modules =
+    complianceiq.presentation
+    complianceiq.infrastructure

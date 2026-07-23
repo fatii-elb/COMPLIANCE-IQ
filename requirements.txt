@@ -1,0 +1,10 @@
+# Runtime dependencies — pinned for reproducible container builds.
+# Application code depends only on these; dev/test tooling lives in
+# requirements-dev.txt. Later phases append (SQLAlchemy, pgvector, anthropic,
+# langgraph, reportlab, opentelemetry) as those subsystems land.
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+pydantic==2.9.2
+pydantic-settings==2.5.2
+structlog==24.4.0
+orjson==3.10.7

@@ -1,0 +1,128 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "complianceiq-ai"
+version = "0.1.0"
+description = "ComplianceIQ AI Subsystem — grounded, multi-tenant GRC intelligence over multi-cloud findings."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "Proprietary" }
+authors = [{ name = "ComplianceIQ AI Team" }]
+
+# Runtime dependencies are pinned in requirements.txt (twelve-factor: a single
+# source of truth for reproducible container builds). This table mirrors the
+# top-level libraries so `pip install -e .` works for local development.
+dependencies = [
+    "fastapi>=0.111,<1.0",
+    "uvicorn[standard]>=0.30,<1.0",
+    "pydantic>=2.7,<3.0",
+    "pydantic-settings>=2.3,<3.0",
+    "structlog>=24.1,<25.0",
+    "orjson>=3.10,<4.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.2,<9.0",
+    "pytest-asyncio>=0.23,<1.0",
+    "pytest-cov>=5.0,<6.0",
+    "httpx>=0.27,<1.0",
+    "hypothesis>=6.100,<7.0",
+    "ruff>=0.5,<1.0",
+    "black>=24.4,<25.0",
+    "mypy>=1.10,<2.0",
+    "import-linter>=2.0,<3.0",
+    "pre-commit>=3.7,<4.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+complianceiq = ["py.typed"]
+
+# ---------------------------------------------------------------------------
+# Ruff — linting. Fast, replaces flake8/isort/pyupgrade families.
+# ---------------------------------------------------------------------------
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP", "B", "C4", "SIM", "RUF"]
+ignore = [
+    # E501 (line length) is enforced by black's formatting, not the linter, to
+    # avoid double-reporting on strings/URLs that cannot be wrapped.
+    "E501",
+    # B008: FastAPI's dependency-injection idiom is `param = Depends(...)` in the
+    # default argument. This is intentional and the framework relies on it.
+    "B008",
+    # RUF001-003: docstrings intentionally use typographic characters (→, ≈, …)
+    # for readable architecture prose; they are not code and are unambiguous.
+    "RUF001",
+    "RUF002",
+    "RUF003",
+]
+# NOTE: the flake8-type-checking (TC/TCH) rules are deliberately NOT enabled.
+# They would push runtime-needed imports into `TYPE_CHECKING` blocks, which
+# breaks Pydantic v2 — it resolves annotations at runtime to build validators.
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["N802", "N803"]  # test names & fixtures may use non-snake styles
+
+# ---------------------------------------------------------------------------
+# Black — formatting.
+# ---------------------------------------------------------------------------
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+
+# ---------------------------------------------------------------------------
+# mypy — static typing. --strict is applied to domain & application in CI.
+# ---------------------------------------------------------------------------
+[tool.mypy]
+python_version = "3.11"
+plugins = ["pydantic.mypy"]
+warn_unused_configs = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+no_implicit_optional = true
+show_error_codes = true
+
+[[tool.mypy.overrides]]
+module = "complianceiq.domain.*"
+strict = true
+
+[[tool.mypy.overrides]]
+module = "complianceiq.application.*"
+strict = true
+
+# ---------------------------------------------------------------------------
+# Pytest.
+# ---------------------------------------------------------------------------
+[tool.pytest.ini_options]
+minversion = "8.0"
+addopts = "-ra -q --strict-markers"
+testpaths = ["tests"]
+asyncio_mode = "auto"
+markers = [
+    "unit: fast, isolated tests with no external dependencies",
+    "integration: tests requiring a real database or external service",
+    "security: tenant isolation, injection, and authorization guarantees",
+    "live_provider: tests that call a real LLM provider (excluded by default)",
+]
+
+[tool.coverage.run]
+branch = true
+source = ["src/complianceiq"]
+omit = ["*/__main__.py"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
+# Global gate. Domain/application sit near 100%; this floor guards the whole
+# package against regressions. Raised as the codebase matures.
+fail_under = 85

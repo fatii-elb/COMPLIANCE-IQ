@@ -1,0 +1,57 @@
+# ---------------------------------------------------------------------------
+# Local development stack for the ComplianceIQ AI Service.
+#
+# Phase 1 brings up the AI service and its PostgreSQL/pgvector database. Later
+# phases extend this file (Core API stub, observability) — the profiles and
+# service names here are chosen so those additions slot in without disruption.
+#
+# Usage:  cp .env.example .env  &&  docker compose up --build
+# ---------------------------------------------------------------------------
+name: complianceiq-ai
+
+services:
+  ai-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: complianceiq/ai-service:local
+    env_file:
+      - .env
+    environment:
+      # Ensure the container binds all interfaces regardless of .env contents.
+      CIQ_HOST: 0.0.0.0
+      CIQ_PORT: "8000"
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health').status==200 else 1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+  postgres:
+    # pgvector-enabled Postgres 16 — the vector store and relational store are
+    # one database (see ADR-0002). Wired into the app in Phase 6.
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: complianceiq
+      POSTGRES_PASSWORD: complianceiq
+      POSTGRES_DB: complianceiq
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U complianceiq -d complianceiq"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  postgres-data:

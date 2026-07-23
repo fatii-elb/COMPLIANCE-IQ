@@ -1,0 +1,33 @@
+# Pre-commit hooks — run fast quality gates before every commit so problems are
+# caught locally instead of in CI. Install with: `pre-commit install`.
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+      - id: check-merge-conflict
+      - id: detect-private-key   # secret hygiene
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.6.9
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
+
+  - repo: https://github.com/psf/black
+    rev: 24.10.0
+    hooks:
+      - id: black
+
+  - repo: local
+    hooks:
+      - id: import-linter
+        name: import-linter (Clean Architecture contracts)
+        entry: lint-imports
+        language: system
+        pass_filenames: false
+        types: [python]
