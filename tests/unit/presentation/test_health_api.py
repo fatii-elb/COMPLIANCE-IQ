@@ -14,12 +14,16 @@ def test_health_liveness(client: TestClient) -> None:
     assert response.json() == {"status": "ok", "version": __version__}
 
 
-def test_readiness_is_healthy_with_no_dependencies(client: TestClient) -> None:
+def test_readiness_reports_provider_probe(client: TestClient) -> None:
+    # From Phase 2, readiness includes a shallow probe per configured provider.
+    # With default settings that is the offline fake provider.
     response = client.get("/health/ready")
     assert response.status_code == 200
     body = response.json()
     assert body["ready"] is True
-    assert body["components"] == []
+    names = {c["name"] for c in body["components"]}
+    assert "llm:fake" in names
+    assert all(c["healthy"] for c in body["components"])
 
 
 def test_version_reports_environment(client: TestClient) -> None:

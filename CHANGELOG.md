@@ -6,6 +6,28 @@ adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added — Phase 2: AI Gateway & Providers
+- Provider-agnostic `LLMProvider` port (`generate`/`stream`/`embed`/`count_tokens`)
+  and a full domain LLM vocabulary (messages, model specs, requests, responses,
+  usage) with no vendor types.
+- `AIGateway` — a single choke point enforcing, per call: per-tenant rate
+  limiting and spend budget, prompt-injection scanning, tenant-scoped
+  content-addressed caching, task-based model routing with a fallback chain,
+  retries (exponential backoff + full jitter), per-call timeouts, circuit
+  breaking, and token/cost accounting.
+- Three provider adapters: **Anthropic (Claude)** primary, an **OpenAI-compatible**
+  secondary (with embeddings), and a deterministic **fake** default (offline).
+- In-memory adapters for the gateway ports (token-bucket rate limiter, TTL cache,
+  usage ledger, async sleeper) — each swappable for a Redis/Postgres version.
+- Rule-based prompt-injection detection policy (pure, deterministic) plus
+  untrusted-content delimiting; enforced at the gateway (non-negotiable rule 4).
+- Provider health probe registered with readiness; `/health/ready` now reports
+  each configured provider.
+- Gateway configuration surfaced via settings; `.env.example` extended.
+- ADR-0003 (AI gateway & provider abstraction), ADR-0004 (prompt-injection
+  defence). New tests across domain/application/infrastructure (114 total, 94%
+  coverage); mypy --strict and the four architecture contracts remain clean.
+
 ### Added — Phase 1: Foundation
 - Clean Architecture skeleton with four layers (domain, application,
   infrastructure, presentation) and a composition root.

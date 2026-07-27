@@ -9,12 +9,29 @@ completion.
 
 Ports are introduced alongside the phase that first needs them:
 - :class:`Clock`, :class:`HealthProbe` — Phase 1 (foundation).
-- ``LLMProvider`` — Phase 2 (gateway & providers).
+- :class:`LLMProvider`, :class:`RateLimiter`, :class:`ResponseCache`,
+  :class:`UsageLedger`, :class:`Sleeper` — Phase 2 (gateway & providers).
 - ``VectorStore``, ``CorpusRepository`` — Phase 3 (RAG).
 - ``FindingSource`` (Core API client) — Phase 6.
 """
 
 from complianceiq.domain.ports.clock import Clock
+from complianceiq.domain.ports.gateway import (
+    RateLimiter,
+    ResponseCache,
+    Sleeper,
+    UsageLedger,
+)
 from complianceiq.domain.ports.health import HealthProbe, HealthResult
+from complianceiq.domain.ports.llm import LLMProvider
 
-__all__ = ["Clock", "HealthProbe", "HealthResult"]
+__all__ = [
+    "Clock",
+    "HealthProbe",
+    "HealthResult",
+    "LLMProvider",
+    "RateLimiter",
+    "ResponseCache",
+    "Sleeper",
+    "UsageLedger",
+]

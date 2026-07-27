@@ -19,16 +19,26 @@ from fastapi import FastAPI
 
 from complianceiq import __version__
 from complianceiq.application.app_info import AppInfo
+from complianceiq.application.gateway.ai_gateway import AIGateway
+from complianceiq.application.gateway.config import GatewayConfig
 from complianceiq.application.services.health import ReadinessService
 from complianceiq.domain.ports.clock import Clock
 from complianceiq.domain.ports.health import HealthProbe
 from complianceiq.infrastructure.clock import SystemClock
 from complianceiq.infrastructure.config.settings import Settings, get_settings
+from complianceiq.infrastructure.gateway import (
+    AsyncSleeper,
+    InMemoryRateLimiter,
+    InMemoryResponseCache,
+    InMemoryUsageLedger,
+    LLMProviderHealthProbe,
+)
 from complianceiq.infrastructure.http.middleware import (
     CorrelationIdMiddleware,
     RequestSizeLimitMiddleware,
 )
 from complianceiq.infrastructure.logging.setup import configure_logging, get_logger
+from complianceiq.infrastructure.providers import build_providers, build_routing_table
 from complianceiq.presentation.app import create_app
 
 
@@ -46,6 +56,7 @@ class ApplicationContainer:
     clock: Clock
     app_info: AppInfo
     readiness_service: ReadinessService
+    ai_gateway: AIGateway
 
 
 def build_container(settings: Settings | None = None) -> ApplicationContainer:
@@ -62,10 +73,39 @@ def build_container(settings: Settings | None = None) -> ApplicationContainer:
 
     clock: Clock = SystemClock()
 
-    # Readiness probes are registered per dependency as later phases add them
-    # (vector store, database, provider, Core API). Phase 1 has no external hard
-    # dependencies, so the set is empty and readiness is trivially healthy.
-    probes: list[HealthProbe] = []
+    # --- AI gateway (Phase 2) ---
+    # Build providers from credentials, assemble the routing table, and wire the
+    # gateway with in-memory adapters for its cross-cutting ports. Each adapter
+    # implements a domain port, so a Redis/Postgres-backed version can replace it
+    # later without touching the gateway.
+    gateway_config = GatewayConfig(
+        request_timeout_seconds=settings.gateway_request_timeout_seconds,
+        max_retries=settings.gateway_max_retries,
+        retry_base_delay_seconds=settings.gateway_retry_base_delay_seconds,
+        retry_max_delay_seconds=settings.gateway_retry_max_delay_seconds,
+        rate_limit_per_minute=settings.gateway_rate_limit_per_minute,
+        tenant_budget_usd=settings.gateway_tenant_budget_usd,
+        cache_ttl_seconds=settings.gateway_cache_ttl_seconds,
+    )
+    providers = build_providers(settings)
+    routing = build_routing_table(settings)
+    ai_gateway = AIGateway(
+        providers=providers,
+        routing=routing,
+        config=gateway_config,
+        rate_limiter=InMemoryRateLimiter(clock, per_minute=gateway_config.rate_limit_per_minute),
+        cache=InMemoryResponseCache(clock),
+        ledger=InMemoryUsageLedger(),
+        sleeper=AsyncSleeper(),
+        clock=clock,
+        logger=get_logger("ai.gateway"),
+    )
+
+    # Readiness now includes a shallow probe per configured provider. More probes
+    # (vector store, database, Core API) are registered in later phases.
+    probes: list[HealthProbe] = [
+        LLMProviderHealthProbe(provider) for provider in providers.values()
+    ]
     readiness_service = ReadinessService(probes)
 
     app_info = AppInfo(
@@ -79,6 +119,7 @@ def build_container(settings: Settings | None = None) -> ApplicationContainer:
         clock=clock,
         app_info=app_info,
         readiness_service=readiness_service,
+        ai_gateway=ai_gateway,
     )
 
 

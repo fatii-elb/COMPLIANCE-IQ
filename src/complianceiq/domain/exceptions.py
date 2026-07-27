@@ -105,10 +105,36 @@ class UnsafeTargetError(ComplianceIQError):
     code = "unsafe_target"
 
 
+class BudgetExceededError(RateLimitError):
+    """A tenant has exhausted its spend budget (HTTP 429).
+
+    A subclass of :class:`RateLimitError` because, to a caller, an exhausted
+    budget behaves like a rate limit: back off and try later (or upgrade).
+    """
+
+    code = "budget_exceeded"
+
+
+class ModelNotAvailableError(ComplianceIQError):
+    """No model/provider could serve the requested task (HTTP 503).
+
+    Raised when the routing table has no entry for a task, or every candidate
+    provider is unconfigured.
+    """
+
+    code = "model_not_available"
+
+
 class ProviderError(ComplianceIQError):
     """An upstream LLM/provider call failed after retries (HTTP 502)."""
 
     code = "provider_error"
+
+
+class ProviderTimeoutError(ProviderError):
+    """An upstream LLM/provider call exceeded its timeout (HTTP 504)."""
+
+    code = "provider_timeout"
 
 
 class DependencyUnavailableError(ComplianceIQError):

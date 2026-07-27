@@ -12,6 +12,7 @@ only reachable via an explicit ``.get_secret_value()`` call.
 
 from __future__ import annotations
 
+from decimal import Decimal
 from enum import StrEnum
 from functools import lru_cache
 
@@ -33,6 +34,7 @@ class LLMProviderName(StrEnum):
 
     FAKE = "fake"
     ANTHROPIC = "anthropic"
+    OPENAI_COMPATIBLE = "openai_compatible"
 
 
 class Settings(BaseSettings):
@@ -74,9 +76,29 @@ class Settings(BaseSettings):
         "postgresql+asyncpg://complianceiq:complianceiq@postgres:5432/complianceiq"
     )
 
-    # --- LLM providers (wired in Phase 2) ---
-    anthropic_api_key: SecretStr = SecretStr("")
+    # --- LLM providers (Phase 2) ---
     llm_primary_provider: LLMProviderName = LLMProviderName.FAKE
+
+    # Anthropic (Claude) — primary provider when selected.
+    anthropic_api_key: SecretStr = SecretStr("")
+    anthropic_model_reasoning: str = "claude-3-5-sonnet-latest"
+    anthropic_model_fast: str = "claude-3-5-haiku-latest"
+
+    # OpenAI-compatible — secondary provider / fallback / embeddings.
+    openai_base_url: str = ""
+    openai_api_key: SecretStr = SecretStr("")
+    openai_chat_model: str = "gpt-4o-mini"
+    openai_embedding_model: str = "text-embedding-3-small"
+    openai_embedding_dimensions: int = Field(default=1536, gt=0)
+
+    # --- AI gateway policies (Phase 2) ---
+    gateway_request_timeout_seconds: float = Field(default=30.0, gt=0)
+    gateway_max_retries: int = Field(default=2, ge=0)
+    gateway_retry_base_delay_seconds: float = Field(default=0.5, gt=0)
+    gateway_retry_max_delay_seconds: float = Field(default=8.0, gt=0)
+    gateway_rate_limit_per_minute: int = Field(default=60, gt=0)
+    gateway_tenant_budget_usd: Decimal = Field(default=Decimal("50"), ge=Decimal(0))
+    gateway_cache_ttl_seconds: int = Field(default=3600, ge=0)
 
     # --- Core Service client (wired in Phase 6) ---
     core_api_base_url: str = "http://core-stub:9000"
