@@ -141,3 +141,20 @@ class DependencyUnavailableError(ComplianceIQError):
     """A required downstream dependency is unavailable (HTTP 503)."""
 
     code = "dependency_unavailable"
+
+
+class KnowledgeBaseError(ComplianceIQError):
+    """A knowledge-base / retrieval invariant was violated (HTTP 500)."""
+
+    code = "knowledge_base_error"
+
+
+class EmbeddingModelMismatchError(KnowledgeBaseError):
+    """A query embedding was compared against chunks from a different model.
+
+    Vectors from different embedding models are not comparable; comparing them
+    yields silent nonsense. The vector store raises this instead, turning a
+    catastrophic-but-invisible bug into a loud, testable failure (HTTP 500).
+    """
+
+    code = "embedding_model_mismatch"

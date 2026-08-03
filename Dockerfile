@@ -47,6 +47,10 @@ RUN groupadd --system --gid 1001 ciq \
 WORKDIR /app
 COPY --from=builder /opt/venv /opt/venv
 
+# Ship the copyright-compliant corpus so the knowledge base autoloads at startup
+# (CIQ_KNOWLEDGE_CORPUS_DIR defaults to ./corpus/frameworks, relative to WORKDIR).
+COPY corpus ./corpus
+
 USER ciq
 EXPOSE 8000
 

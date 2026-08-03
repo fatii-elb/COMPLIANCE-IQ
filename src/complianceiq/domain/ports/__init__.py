@@ -23,15 +23,25 @@ from complianceiq.domain.ports.gateway import (
     UsageLedger,
 )
 from complianceiq.domain.ports.health import HealthProbe, HealthResult
+from complianceiq.domain.ports.knowledge import (
+    Embedder,
+    KeywordIndex,
+    Reranker,
+    VectorStore,
+)
 from complianceiq.domain.ports.llm import LLMProvider
 
 __all__ = [
     "Clock",
+    "Embedder",
     "HealthProbe",
     "HealthResult",
+    "KeywordIndex",
     "LLMProvider",
     "RateLimiter",
+    "Reranker",
     "ResponseCache",
     "Sleeper",
     "UsageLedger",
+    "VectorStore",
 ]

@@ -37,6 +37,12 @@ from complianceiq.infrastructure.http.middleware import (
     CorrelationIdMiddleware,
     RequestSizeLimitMiddleware,
 )
+from complianceiq.infrastructure.knowledge import (
+    KnowledgeStack,
+    VectorStoreHealthProbe,
+    build_knowledge_stack,
+    load_corpus,
+)
 from complianceiq.infrastructure.logging.setup import configure_logging, get_logger
 from complianceiq.infrastructure.providers import build_providers, build_routing_table
 from complianceiq.presentation.app import create_app
@@ -57,6 +63,7 @@ class ApplicationContainer:
     app_info: AppInfo
     readiness_service: ReadinessService
     ai_gateway: AIGateway
+    knowledge: KnowledgeStack
 
 
 def build_container(settings: Settings | None = None) -> ApplicationContainer:
@@ -101,11 +108,16 @@ def build_container(settings: Settings | None = None) -> ApplicationContainer:
         logger=get_logger("ai.gateway"),
     )
 
-    # Readiness now includes a shallow probe per configured provider. More probes
-    # (vector store, database, Core API) are registered in later phases.
+    # --- Knowledge base & RAG (Phase 3) ---
+    # In-memory vector store + keyword index behind the VectorStore/KeywordIndex
+    # ports; the pgvector-backed store (ADR-0005) swaps in here in Phase 6.
+    knowledge = build_knowledge_stack(settings, ai_gateway)
+
+    # Readiness includes a shallow probe per provider plus the vector store.
     probes: list[HealthProbe] = [
         LLMProviderHealthProbe(provider) for provider in providers.values()
     ]
+    probes.append(VectorStoreHealthProbe(knowledge.vector_store))
     readiness_service = ReadinessService(probes)
 
     app_info = AppInfo(
@@ -120,6 +132,7 @@ def build_container(settings: Settings | None = None) -> ApplicationContainer:
         app_info=app_info,
         readiness_service=readiness_service,
         ai_gateway=ai_gateway,
+        knowledge=knowledge,
     )
 
 
@@ -142,7 +155,28 @@ def build_app(settings: Settings | None = None) -> FastAPI:
     )
 
     container = build_container(settings)
-    app = create_app(container)
+
+    # Corpus autoload: on startup, if enabled and the store is empty, ingest the
+    # bundled copyright-compliant corpus so `docker compose up` yields a working,
+    # queryable knowledge base with no manual step.
+    async def _seed_corpus() -> None:
+        if not settings.knowledge_autoload:
+            return
+        if await container.knowledge.vector_store.count() > 0:
+            return
+        documents = load_corpus(container.knowledge.corpus_dir)
+        if not documents:
+            logger.warning("corpus_autoload_empty", corpus_dir=str(container.knowledge.corpus_dir))
+            return
+        report = await container.knowledge.ingestion.ingest(documents)
+        logger.info(
+            "corpus_autoloaded",
+            documents=report.documents,
+            chunks=report.chunks,
+            corpus_version=report.corpus_version,
+        )
+
+    app = create_app(container, on_startup=[_seed_corpus])
 
     # Middleware executes in reverse order of registration (last added is
     # outermost). We want: CorrelationId (outermost) → RequestSizeLimit → app.

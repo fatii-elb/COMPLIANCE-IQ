@@ -1,0 +1,37 @@
+{
+  "framework": "dnssi",
+  "title": "DGSSI/DNSSI Directive Nationale de la Sécurité des Systèmes d'Information (Morocco)",
+  "version": "2014",
+  "language": "en",
+  "jurisdiction": "morocco",
+  "controls": [
+    {
+      "control_id": "DNSSI-ACC",
+      "title": "Access management",
+      "summary": "Information systems must enforce identification, authentication, and authorization of users, applying least privilege and removing dormant accounts. Cloud identities with unused permissions or unrotated keys should be remediated.",
+      "keywords": ["access", "authentication", "authorization", "iam", "dormant accounts", "least privilege"],
+      "references": ["DNSSI (Morocco), Access Management directive — public directive"]
+    },
+    {
+      "control_id": "DNSSI-CRY",
+      "title": "Cryptography and data protection",
+      "summary": "Sensitive data must be protected by approved cryptographic mechanisms both at rest and in transit. Storage services and databases holding sensitive data must be encrypted, and traffic must use secure transport.",
+      "keywords": ["cryptography", "encryption", "data at rest", "data in transit", "tls", "storage"],
+      "references": ["DNSSI (Morocco), Cryptography directive — public directive"]
+    },
+    {
+      "control_id": "DNSSI-NET",
+      "title": "Network security and filtering",
+      "summary": "Networks must be protected by filtering and segmentation, restricting exposure of services to only what is necessary. Security groups or firewalls allowing unrestricted inbound access from the internet must be tightened.",
+      "keywords": ["network", "filtering", "segmentation", "firewall", "security group", "public exposure"],
+      "references": ["DNSSI (Morocco), Network Security directive — public directive"]
+    },
+    {
+      "control_id": "DNSSI-LOG",
+      "title": "Logging and traceability",
+      "summary": "Security-relevant events must be logged and retained to ensure traceability and support incident investigation. Cloud audit and access logging must be enabled and protected against tampering.",
+      "keywords": ["logging", "traceability", "audit", "monitoring", "retention"],
+      "references": ["DNSSI (Morocco), Logging and Traceability directive — public directive"]
+    }
+  ]
+}

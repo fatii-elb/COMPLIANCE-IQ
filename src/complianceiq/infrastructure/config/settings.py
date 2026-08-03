@@ -100,6 +100,17 @@ class Settings(BaseSettings):
     gateway_tenant_budget_usd: Decimal = Field(default=Decimal("50"), ge=Decimal(0))
     gateway_cache_ttl_seconds: int = Field(default=3600, ge=0)
 
+    # --- Knowledge base & retrieval (Phase 3) ---
+    knowledge_corpus_dir: str = "corpus/frameworks"
+    knowledge_corpus_version: str = "v1"
+    knowledge_autoload: bool = True  # ingest the bundled corpus at startup
+    retrieval_candidate_multiplier: int = Field(default=4, ge=1, le=20)
+    retrieval_rerank_top_k: int = Field(default=20, ge=1, le=100)
+    retrieval_rrf_k: int = Field(default=60, ge=1)
+    retrieval_mmr_lambda: float = Field(default=0.5, ge=0.0, le=1.0)
+    retrieval_context_token_budget: int = Field(default=2000, ge=128)
+    retrieval_chunk_max_tokens: int = Field(default=400, ge=64)
+
     # --- Core Service client (wired in Phase 6) ---
     core_api_base_url: str = "http://core-stub:9000"
 

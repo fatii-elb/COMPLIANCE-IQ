@@ -27,6 +27,7 @@ from complianceiq.domain.llm.responses import (
 )
 from complianceiq.domain.ports.clock import Clock
 from complianceiq.domain.ports.gateway import Sleeper
+from complianceiq.domain.ports.knowledge import Embedder
 from complianceiq.domain.ports.llm import LLMProvider
 
 
@@ -111,6 +112,65 @@ class ScriptedProvider(LLMProvider):
 
     def count_tokens(self, model_id: str, text: str) -> int:
         return max(1, len(text) // 4)
+
+
+#: A tiny fixed vocabulary of security terms. The stub embedder projects text
+#: onto these dimensions (bag-of-words), so cosine similarity reflects real term
+#: overlap and retrieval tests can assert meaningful ordering — unlike the
+#: hash-based fake provider whose vectors are semantically random.
+_STUB_VOCAB = (
+    "iam",
+    "access",
+    "identity",
+    "credential",
+    "key",
+    "rotation",
+    "authorization",
+    "encryption",
+    "encrypt",
+    "cryptography",
+    "data",
+    "storage",
+    "bucket",
+    "network",
+    "firewall",
+    "segmentation",
+    "public",
+    "exposure",
+    "logging",
+    "audit",
+    "monitoring",
+    "incident",
+    "tls",
+    "transit",
+    "control",
+)
+
+
+class StubEmbedder(Embedder):
+    """A deterministic bag-of-words embedder for retrieval tests (offline)."""
+
+    def __init__(self, model_id: str = "stub-embed") -> None:
+        self._model_id = model_id
+
+    async def embed(self, texts: Sequence[str]) -> list[EmbeddingResult]:
+        from complianceiq.domain.knowledge.similarity import token_set
+
+        results: list[EmbeddingResult] = []
+        for text in texts:
+            tokens = token_set(text)
+            vector = [1.0 if term in tokens else 0.0 for term in _STUB_VOCAB]
+            if not any(vector):
+                vector[0] = 1e-6  # avoid a zero-norm vector
+            results.append(
+                EmbeddingResult(
+                    vector=vector,
+                    provider=ProviderName.FAKE,
+                    model_id=self._model_id,
+                    usage=TokenUsage(input_tokens=1, output_tokens=0),
+                )
+            )
+        return results
 
 
 def make_spec(

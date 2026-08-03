@@ -20,6 +20,15 @@ The `Framework.ISO_27001` value exists as an identifier for mapping and
 structure; retrieval for ISO controls returns our summaries and identifiers,
 never quoted standard text.
 
+**Enforced by shape (Phase 3).** The knowledge-base domain model
+(`ControlSummary`) has fields for `control_id`, an original `summary`, and
+`references` — but **no field for verbatim standard text**. The forbidden data
+therefore has nowhere to live: the ingestion pipeline literally cannot store it.
+The bundled corpus for copyrighted standards (ISO/IEC 27001, SOC 2) contains only
+identifiers, our own summaries, and pointers to the licensed source; public
+sources (Loi 05-20, DNSSI, NIST CSF) are summarised from public text. See
+`corpus/README.md`.
+
 ## Primary quotable material — public sources
 
 - **Loi 05-20** (Morocco — cybersecurity law) and **DNSSI** directives are

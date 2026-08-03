@@ -27,3 +27,22 @@ chosen and recorded here (per the working agreement). Each can be revisited.
 8. **English is the primary language** of generated explanations, with the
    corpus carrying `language`/`jurisdiction` metadata to support French/Arabic
    Moroccan sources in later phases.
+
+## Phase 3
+
+9. **The regulatory corpus is shared, not tenant-scoped.** Public regulations and
+   our own control summaries are the same for every tenant, so chunks carry no
+   `tenant_id`. Tenant isolation applies to findings and generated artefacts, not
+   the regulatory library everyone reads.
+10. **In-memory vector store + keyword index are the default** (ADR-0005); the
+    pgvector-backed store lands in Phase 6. Retrieval is fully functional and
+    tested offline; semantic quality is limited under the fake embedder and
+    restored by real embeddings with no code change.
+11. **The bundled corpus is a representative sample**, not exhaustive: five
+    frameworks with several cloud-security controls each, enough to make retrieval
+    and mapping meaningful. Expanding it is a data change (add JSON), not code.
+12. **Approximate token budgeting** (≈ 4 chars/token) is used for chunk sizing and
+    context packing, matching the gateway's pre-flight estimate; authoritative
+    counts still come from provider usage.
+13. **Corpus autoload at startup** (default on) ingests the bundled corpus into the
+    in-memory store so a fresh `docker compose up` is immediately queryable.

@@ -6,6 +6,29 @@ adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added — Phase 3: Knowledge Base & RAG
+- Knowledge-base domain model (`CorpusDocument` → `ControlSummary`; `Chunk`,
+  `EmbeddedChunk`, `ScoredChunk`, `RetrievalQuery`/`Result`, `AssembledContext`,
+  metadata + filters) — the corpus is shared, not tenant-scoped.
+- Structure-aware chunking (one control ≈ one chunk; overlap split for long
+  controls; deterministic, idempotent ids).
+- `Embedder`/`VectorStore`/`KeywordIndex`/`Reranker` ports with offline in-memory
+  adapters: cosine vector store (with the **embedding-model-identity guard**),
+  BM25 keyword index, and a deterministic lexical reranker.
+- Hybrid retrieval: semantic + lexical + Reciprocal Rank Fusion + reranking + MMR
+  diversity + score-threshold abstention, with metadata pre-filtering.
+- Context assembly: token-budgeted, de-duplicated, numbered blocks with citations.
+- Ingestion service (chunk → embed via the gateway → upsert; idempotent; versioned
+  with `replace`); corpus loaders; `scripts/ingest_corpus.py` CLI; startup autoload.
+- Retrieval evaluation harness (recall@k, precision@k, MRR, hit-rate) + golden set.
+- Copyright-compliant sample corpus (NIST CSF, Loi 05-20, DNSSI, ISO 27001, SOC 2).
+- Vector-store readiness probe; knowledge settings; `.env.example` extended;
+  corpus shipped in the Docker image.
+- ADR-0005 (in-memory stores now, pgvector in Phase 6) and ADR-0006 (hybrid
+  retrieval + structure-aware chunking); `docs/RAG.md`; corpus README.
+- New tests (143 total, ~94% coverage); mypy --strict and the four architecture
+  contracts remain clean.
+
 ### Added — Phase 2: AI Gateway & Providers
 - Provider-agnostic `LLMProvider` port (`generate`/`stream`/`embed`/`count_tokens`)
   and a full domain LLM vocabulary (messages, model specs, requests, responses,
