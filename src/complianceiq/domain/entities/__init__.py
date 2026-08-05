@@ -6,10 +6,12 @@ validated strictly, and never changed unilaterally.
 """
 
 from complianceiq.domain.entities.auth import AuthContext
+from complianceiq.domain.entities.copilot import CopilotAnswer
 from complianceiq.domain.entities.financial import FinancialRiskAssessment
 from complianceiq.domain.entities.finding import EnrichedFinding, Finding
 from complianceiq.domain.entities.pagination import Page
 from complianceiq.domain.entities.remediation import RemediationProposal
+from complianceiq.domain.entities.report import ReportDraft
 from complianceiq.domain.entities.resource import NormalizedResource
 from complianceiq.domain.entities.risk import CorrelatedRisk
 from complianceiq.domain.entities.score import ComplianceScore
@@ -17,6 +19,7 @@ from complianceiq.domain.entities.score import ComplianceScore
 __all__ = [
     "AuthContext",
     "ComplianceScore",
+    "CopilotAnswer",
     "CorrelatedRisk",
     "EnrichedFinding",
     "FinancialRiskAssessment",
@@ -24,4 +27,5 @@ __all__ = [
     "NormalizedResource",
     "Page",
     "RemediationProposal",
+    "ReportDraft",
 ]

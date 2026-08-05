@@ -6,6 +6,39 @@ adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added — Phase 4: LangGraph Workflows & Agents
+- Four explicit **LangGraph** state graphs (typed state, injected bound-method
+  nodes, declared edges, per-node timeout, and a `trace` channel): `EnrichmentGraph`
+  (Finding → grounded `EnrichedFinding`), `CopilotGraph` (question → `CopilotAnswer`),
+  `RemediationGraph` (Finding → validated, never-applied `RemediationProposal`),
+  and `ReportGraph` (enriched findings → `ReportDraft`).
+- **Grounding made structural**: the *abstain* branch is a first-class edge (no
+  model call on empty retrieval); `verify_citations` drops any citation not in the
+  retrieved sources; `citation_verified` is authoritative. Domain policies added:
+  `grounding` (cite/verify/abstain) and `iac_safety` (static over-permissive-IaC
+  scan; unsafe remediation → `WorkflowError`).
+- **Prompts as versioned assets**: `PromptTemplate` (pure, strict `{{ var }}`
+  rendering), `.prompt` file loader (dependency-free frontmatter), and a
+  `PromptRegistry` serving the latest version by default; five bundled prompts.
+  Every generation is attributable to an `id@version` key.
+- **Bounded, tool-using agents**: `BoundedAgent` + per-run `ToolSession` enforcing
+  a tool allow-list, iteration and wall-clock budgets, loop detection, typed
+  argument validation, and **injection scanning of tool output** (defence-in-depth
+  on top of the gateway). Typed `Tool`/`ToolRegistry` and the built-in
+  `search_corpus` tool over the retrieval stack.
+- Four agents: `ComplianceAnalystAgent`, `RemediationEngineerAgent`,
+  `ReportWriterAgent` (each wrapping a graph), and `RiskAnalystAgent` (exercises
+  the bounded tool layer to correlate findings into one grounded narrative).
+- New domain entities `CopilotAnswer` and `ReportDraft`; new exceptions
+  `PromptError` and `WorkflowError`.
+- Composition-root wiring (`AgentSuite`, `build_agent_suite`), prompt/agent
+  settings, and `prompts/` shipped in the Docker image.
+- ADR-0007 (LangGraph workflows) and ADR-0008 (bounded agents); `docs/AGENTS.md`
+  and `docs/PROMPTS.md`.
+- New offline, deterministic tests (workflows, agents, guardrails, grounding, IaC
+  safety, prompts, tools) — 191 total, ~95% coverage; mypy --strict and the four
+  architecture contracts remain clean.
+
 ### Added — Phase 3: Knowledge Base & RAG
 - Knowledge-base domain model (`CorpusDocument` → `ControlSummary`; `Chunk`,
   `EmbeddedChunk`, `ScoredChunk`, `RetrievalQuery`/`Result`, `AssembledContext`,

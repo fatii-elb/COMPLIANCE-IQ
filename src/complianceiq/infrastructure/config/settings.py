@@ -111,6 +111,11 @@ class Settings(BaseSettings):
     retrieval_context_token_budget: int = Field(default=2000, ge=128)
     retrieval_chunk_max_tokens: int = Field(default=400, ge=64)
 
+    # --- Prompts & agents (Phase 4) ---
+    prompts_dir: str = "prompts"
+    agent_max_iterations: int = Field(default=8, ge=1, le=100)
+    agent_wall_clock_seconds: float = Field(default=60.0, gt=0)
+
     # --- Core Service client (wired in Phase 6) ---
     core_api_base_url: str = "http://core-stub:9000"
 

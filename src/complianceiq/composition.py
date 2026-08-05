@@ -14,14 +14,29 @@ in one file and is trivial to reconfigure for tests or new environments.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
 
 from fastapi import FastAPI
 
 from complianceiq import __version__
+from complianceiq.application.agents import (
+    ComplianceAnalystAgent,
+    RemediationEngineerAgent,
+    ReportWriterAgent,
+    RiskAnalystAgent,
+)
 from complianceiq.application.app_info import AppInfo
 from complianceiq.application.gateway.ai_gateway import AIGateway
 from complianceiq.application.gateway.config import GatewayConfig
+from complianceiq.application.graphs import (
+    CopilotGraph,
+    EnrichmentGraph,
+    RemediationGraph,
+    ReportGraph,
+)
+from complianceiq.application.prompts.registry import PromptRegistry
 from complianceiq.application.services.health import ReadinessService
+from complianceiq.application.tools import AgentBudget, ToolRegistry, build_corpus_tools
 from complianceiq.domain.ports.clock import Clock
 from complianceiq.domain.ports.health import HealthProbe
 from complianceiq.infrastructure.clock import SystemClock
@@ -44,8 +59,27 @@ from complianceiq.infrastructure.knowledge import (
     load_corpus,
 )
 from complianceiq.infrastructure.logging.setup import configure_logging, get_logger
+from complianceiq.infrastructure.prompts.loader import load_prompts
 from complianceiq.infrastructure.providers import build_providers, build_routing_table
 from complianceiq.presentation.app import create_app
+
+
+@dataclass(frozen=True, slots=True)
+class AgentSuite:
+    """The Phase 4 AI capabilities — bounded agents over graphs and tools.
+
+    Grouped so the composition root and presentation layer have one handle for
+    the whole workflow/agent subsystem. ``prompts`` and ``tools`` are exposed for
+    introspection (e.g. an admin endpoint listing available prompts/tools).
+    """
+
+    prompts: PromptRegistry
+    tools: ToolRegistry
+    copilot: CopilotGraph
+    compliance_analyst: ComplianceAnalystAgent
+    remediation_engineer: RemediationEngineerAgent
+    report_writer: ReportWriterAgent
+    risk_analyst: RiskAnalystAgent
 
 
 @dataclass(frozen=True, slots=True)
@@ -64,6 +98,82 @@ class ApplicationContainer:
     readiness_service: ReadinessService
     ai_gateway: AIGateway
     knowledge: KnowledgeStack
+    agents: AgentSuite
+
+
+def build_agent_suite(
+    settings: Settings,
+    *,
+    gateway: AIGateway,
+    knowledge: KnowledgeStack,
+    clock: Clock,
+) -> AgentSuite:
+    """Wire the Phase 4 prompts, graphs, tools, and bounded agents.
+
+    Prompts are loaded from the ``prompts/`` asset directory (versioned files),
+    the four LangGraph workflows are built over the retrieval stack and gateway,
+    the knowledge tool is registered, and each capability is exposed as a
+    budget-bounded agent.
+    """
+    logger = get_logger("ai.graphs")
+    prompts = PromptRegistry(load_prompts(Path(settings.prompts_dir)))
+    budget = AgentBudget(
+        max_iterations=settings.agent_max_iterations,
+        wall_clock_seconds=settings.agent_wall_clock_seconds,
+    )
+
+    enrichment_graph = EnrichmentGraph(
+        retriever=knowledge.retriever,
+        assembler=knowledge.assembler,
+        gateway=gateway,
+        prompts=prompts,
+        config=knowledge.config,
+        logger=logger,
+    )
+    copilot_graph = CopilotGraph(
+        retriever=knowledge.retriever,
+        assembler=knowledge.assembler,
+        gateway=gateway,
+        prompts=prompts,
+        config=knowledge.config,
+        logger=logger,
+    )
+    remediation_graph = RemediationGraph(
+        retriever=knowledge.retriever,
+        assembler=knowledge.assembler,
+        gateway=gateway,
+        prompts=prompts,
+        config=knowledge.config,
+        logger=logger,
+    )
+    report_graph = ReportGraph(gateway=gateway, prompts=prompts, clock=clock, logger=logger)
+
+    tools = ToolRegistry(
+        build_corpus_tools(knowledge.retriever, knowledge.assembler, knowledge.config)
+    )
+
+    return AgentSuite(
+        prompts=prompts,
+        tools=tools,
+        copilot=copilot_graph,
+        compliance_analyst=ComplianceAnalystAgent(
+            graph=enrichment_graph, registry=tools, clock=clock, budget=budget
+        ),
+        remediation_engineer=RemediationEngineerAgent(
+            graph=remediation_graph, registry=tools, clock=clock, budget=budget
+        ),
+        report_writer=ReportWriterAgent(
+            graph=report_graph, registry=tools, clock=clock, budget=budget
+        ),
+        risk_analyst=RiskAnalystAgent(
+            gateway=gateway,
+            prompts=prompts,
+            registry=tools,
+            config=knowledge.config,
+            clock=clock,
+            budget=budget,
+        ),
+    )
 
 
 def build_container(settings: Settings | None = None) -> ApplicationContainer:
@@ -113,6 +223,11 @@ def build_container(settings: Settings | None = None) -> ApplicationContainer:
     # ports; the pgvector-backed store (ADR-0005) swaps in here in Phase 6.
     knowledge = build_knowledge_stack(settings, ai_gateway)
 
+    # --- Workflows & agents (Phase 4) ---
+    # Versioned prompts, the four LangGraph workflows, the knowledge tool, and the
+    # bounded agents that expose each capability under hard budgets.
+    agents = build_agent_suite(settings, gateway=ai_gateway, knowledge=knowledge, clock=clock)
+
     # Readiness includes a shallow probe per provider plus the vector store.
     probes: list[HealthProbe] = [
         LLMProviderHealthProbe(provider) for provider in providers.values()
@@ -133,6 +248,7 @@ def build_container(settings: Settings | None = None) -> ApplicationContainer:
         readiness_service=readiness_service,
         ai_gateway=ai_gateway,
         knowledge=knowledge,
+        agents=agents,
     )
 
 

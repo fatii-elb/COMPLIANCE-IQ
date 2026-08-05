@@ -51,6 +51,10 @@ COPY --from=builder /opt/venv /opt/venv
 # (CIQ_KNOWLEDGE_CORPUS_DIR defaults to ./corpus/frameworks, relative to WORKDIR).
 COPY corpus ./corpus
 
+# Ship the versioned prompt assets (CIQ_PROMPTS_DIR defaults to ./prompts,
+# relative to WORKDIR) so the workflows/agents load their prompts at startup.
+COPY prompts ./prompts
+
 USER ciq
 EXPOSE 8000
 

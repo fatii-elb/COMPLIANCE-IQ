@@ -149,6 +149,21 @@ class KnowledgeBaseError(ComplianceIQError):
     code = "knowledge_base_error"
 
 
+class PromptError(ComplianceIQError):
+    """A prompt could not be found or rendered (HTTP 500)."""
+
+    code = "prompt_error"
+
+
+class WorkflowError(ComplianceIQError):
+    """An AI workflow/agent exceeded its budget or failed to converge (HTTP 500).
+
+    Covers agent max-iteration / wall-clock budget exhaustion and loop detection.
+    """
+
+    code = "workflow_error"
+
+
 class EmbeddingModelMismatchError(KnowledgeBaseError):
     """A query embedding was compared against chunks from a different model.
 
