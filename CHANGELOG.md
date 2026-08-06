@@ -6,6 +6,35 @@ adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added — Phase 6: Core Service client, RS256 auth, pgvector
+- **Core Service client**: a `CoreClient` port with a seeded in-process
+  `StubCoreClient` (offline default) and an `HttpCoreClient` (httpx) that calls the
+  Core's REST findings API, **forwards the caller's JWT** (token pass-through), and
+  maps HTTP failures to domain exceptions. Every returned finding is re-checked
+  against the caller's tenant (defense-in-depth, rule 1). New endpoint
+  `POST /api/v1/ai/enrich/by-ids` fetches findings from the Core and enriches them.
+- **RS256 (asymmetric) JWT verification**: `RS256TokenVerifier` — a dependency-free,
+  standard-library RSASSA-PKCS1-v1_5/SHA-256 verifier consuming the Core's public
+  key as a JWK. HS256 and RS256 now share one claim-validation pipeline
+  (`BaseJwtVerifier`); the composition root auto-selects RS256 when a public JWK is
+  configured, else HS256. Algorithm pinning, constant-time compare, and the
+  forgery/expiry/issuer paths are all covered.
+- **PostgreSQL + pgvector store**: `PgVectorStore` implementing the Phase-3
+  `VectorStore` port via a thin async `SqlExecutor` seam (real psycopg executor
+  imported lazily; in-memory fake in tests), with the embedding-model guard and a
+  `migrations/0001_knowledge_pgvector.sql` (extension, table, ivfflat cosine index).
+  Selected by `CIQ_VECTOR_STORE=memory|pgvector` (memory default).
+- Settings `core_client`, `core_request_timeout_seconds`, `vector_store`; container
+  exposes `core_client`; `get_core_client`/`get_bearer_token` dependencies.
+  `AgentSuite` unchanged. `requirements.txt` adds langgraph (Phase 4) and optional
+  `psycopg[binary,pool]`; migrations shipped in the Docker image; `.env.example`
+  extended. ADR-0010 (Core client + token pass-through) and ADR-0011 (stdlib RS256
+  + pgvector behind an executor seam).
+- New offline tests (RS256 verifier incl. forgery/alg-pin; Core stub + HTTP adapter
+  via `MockTransport`; pgvector SQL/mapping/guard via a fake executor; RS256-wired
+  app; Core-fetch endpoint) — 251 total, ~94% coverage; mypy --strict and the four
+  architecture contracts remain clean.
+
 ### Added — Phase 5: Presentation / HTTP API
 - **AI capability endpoints** under `/api/v1/ai`, exposing the Phase-4 agents:
   `POST /enrich` (→ `[EnrichedFinding]`), `POST /ask` (→ `CopilotAnswer`),

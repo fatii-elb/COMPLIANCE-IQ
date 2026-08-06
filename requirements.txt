@@ -11,7 +11,17 @@ orjson==3.10.7
 
 # --- Phase 2: AI Gateway & providers ---
 # Anthropic Claude is the primary LLM provider. httpx powers the
-# OpenAI-compatible secondary adapter. Both are wired behind the LLMProvider
-# port, so the default `fake` provider needs neither at runtime.
+# OpenAI-compatible secondary adapter and the Core Service client. Both are wired
+# behind ports, so the default `fake` provider / `stub` Core client need neither
+# at runtime.
 anthropic==0.39.0
 httpx==0.27.2
+
+# --- Phase 4: LangGraph workflows ---
+langgraph==0.2.76
+
+# --- Phase 6: PostgreSQL + pgvector (optional) ---
+# Only required when CIQ_VECTOR_STORE=pgvector; the default in-memory store and
+# the whole test suite run without it. JWT verification (HS256 and RS256) is
+# stdlib-only, so no crypto dependency is needed here.
+psycopg[binary,pool]==3.2.3

@@ -11,7 +11,14 @@ from typing import Any
 
 from fastapi.testclient import TestClient
 
-from tests.auth_helpers import bearer, mint_token
+from complianceiq.composition import build_app
+from complianceiq.infrastructure.config.settings import Environment, Settings
+from tests.auth_helpers import (
+    bearer,
+    mint_rs256_token,
+    mint_token,
+    rsa_public_jwk,
+)
 
 
 def _finding(tenant_id: str = "tenant-a", control_id: str = "PR.AA-01") -> dict[str, Any]:
@@ -151,3 +158,67 @@ def test_validation_error_on_empty_findings(client: TestClient) -> None:
     )
     assert r.status_code == 422
     assert r.json()["error"]["code"] == "validation_error"
+
+
+# --------------------- Core integration (Phase 6, stub) -------------------- #
+
+
+def test_enrich_by_ids_fetches_from_core(client: TestClient) -> None:
+    r = client.post(
+        "/api/v1/ai/enrich/by-ids",
+        json={"finding_ids": ["finding-iam-1"]},
+        headers=bearer(mint_token()),
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert len(body) == 1
+    assert body[0]["control_id"] == "PR.AA-01"
+    assert body[0]["citation_verified"] is True
+
+
+def test_enrich_by_ids_unknown_id_is_404(client: TestClient) -> None:
+    r = client.post(
+        "/api/v1/ai/enrich/by-ids",
+        json={"finding_ids": ["nope"]},
+        headers=bearer(mint_token()),
+    )
+    assert r.status_code == 404
+
+
+def test_enrich_by_ids_cross_tenant_is_not_leaked(client: TestClient) -> None:
+    # tenant-b asks for tenant-a's seeded finding → 404, never the data.
+    r = client.post(
+        "/api/v1/ai/enrich/by-ids",
+        json={"finding_ids": ["finding-iam-1"]},
+        headers=bearer(mint_token(tenant_id="tenant-b")),
+    )
+    assert r.status_code == 404
+
+
+# ----------------------- RS256-wired app (Phase 6) ------------------------- #
+
+
+def test_app_wired_with_rs256_public_key_accepts_rs256_tokens() -> None:
+    # Configuring an RSA public JWK makes the composition root select the RS256
+    # verifier; an HS256 token must then be rejected and an RS256 one accepted.
+    settings = Settings(
+        environment=Environment.LOCAL,
+        log_json=False,
+        log_level="WARNING",
+        jwt_public_key=rsa_public_jwk(),  # type: ignore[arg-type]
+    )
+    app = build_app(settings)
+    with TestClient(app) as c:
+        ok = c.post(
+            "/api/v1/ai/ask",
+            json={"question": "How should IAM access keys be managed?"},
+            headers=bearer(mint_rs256_token()),
+        )
+        assert ok.status_code == 200
+
+        hs = c.post(
+            "/api/v1/ai/ask",
+            json={"question": "hi"},
+            headers=bearer(mint_token()),
+        )
+        assert hs.status_code == 401

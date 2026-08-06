@@ -40,10 +40,16 @@ from complianceiq.application.services.health import ReadinessService
 from complianceiq.application.tools import AgentBudget, ToolRegistry, build_corpus_tools
 from complianceiq.domain.ports.auth import TokenVerifier
 from complianceiq.domain.ports.clock import Clock
+from complianceiq.domain.ports.core import CoreClient
 from complianceiq.domain.ports.health import HealthProbe
-from complianceiq.infrastructure.auth import build_token_verifier
+from complianceiq.infrastructure.auth import (
+    build_rs256_verifier,
+    build_token_verifier,
+    looks_like_jwk,
+)
 from complianceiq.infrastructure.clock import SystemClock
 from complianceiq.infrastructure.config.settings import Settings, get_settings
+from complianceiq.infrastructure.core import build_core_client
 from complianceiq.infrastructure.gateway import (
     AsyncSleeper,
     InMemoryRateLimiter,
@@ -85,6 +91,7 @@ class ApplicationContainer:
     knowledge: KnowledgeStack
     agents: AgentSuite
     token_verifier: TokenVerifier
+    core_client: CoreClient
 
 
 def build_agent_suite(
@@ -214,15 +221,31 @@ def build_container(settings: Settings | None = None) -> ApplicationContainer:
     # bounded agents that expose each capability under hard budgets.
     agents = build_agent_suite(settings, gateway=ai_gateway, knowledge=knowledge, clock=clock)
 
-    # --- Authentication (Phase 5) ---
-    # HS256 token verification for local dev/testing; Phase 6 swaps in the Core's
-    # asymmetric public key behind the same TokenVerifier port.
-    token_verifier = build_token_verifier(
-        secret=settings.jwt_hs256_secret.get_secret_value(),
-        issuer=settings.jwt_issuer,
-        audience=settings.jwt_audience,
-        clock=clock,
-    )
+    # --- Authentication (Phase 5 HS256 / Phase 6 RS256) ---
+    # If the Core's public key (an RSA JWK) is configured, verify tokens
+    # asymmetrically (production); otherwise fall back to the symmetric HS256
+    # secret (local dev/testing). Both implement the same TokenVerifier port.
+    public_key = settings.jwt_public_key.get_secret_value()
+    token_verifier: TokenVerifier
+    if looks_like_jwk(public_key):
+        token_verifier = build_rs256_verifier(
+            public_key_jwk=public_key,
+            issuer=settings.jwt_issuer,
+            audience=settings.jwt_audience,
+            clock=clock,
+        )
+    else:
+        token_verifier = build_token_verifier(
+            secret=settings.jwt_hs256_secret.get_secret_value(),
+            issuer=settings.jwt_issuer,
+            audience=settings.jwt_audience,
+            clock=clock,
+        )
+
+    # --- Core Service client (Phase 6) ---
+    # `stub` (offline default) seeds findings in-process; `http` calls the real
+    # Core over REST. Either way the app depends only on the CoreClient port.
+    core_client = build_core_client(settings)
 
     # Readiness includes a shallow probe per provider plus the vector store.
     probes: list[HealthProbe] = [
@@ -246,6 +269,7 @@ def build_container(settings: Settings | None = None) -> ApplicationContainer:
         knowledge=knowledge,
         agents=agents,
         token_verifier=token_verifier,
+        core_client=core_client,
     )
 
 

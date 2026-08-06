@@ -4,6 +4,7 @@ from complianceiq.infrastructure.knowledge.factory import KnowledgeStack, build_
 from complianceiq.infrastructure.knowledge.health import VectorStoreHealthProbe
 from complianceiq.infrastructure.knowledge.keyword_index_memory import InMemoryKeywordIndex
 from complianceiq.infrastructure.knowledge.loaders import load_corpus, load_corpus_file
+from complianceiq.infrastructure.knowledge.pgvector_store import PgVectorStore
 from complianceiq.infrastructure.knowledge.reranker_lexical import LexicalReranker
 from complianceiq.infrastructure.knowledge.vector_store_memory import InMemoryVectorStore
 
@@ -12,6 +13,7 @@ __all__ = [
     "InMemoryVectorStore",
     "KnowledgeStack",
     "LexicalReranker",
+    "PgVectorStore",
     "VectorStoreHealthProbe",
     "build_knowledge_stack",
     "load_corpus",

@@ -24,6 +24,7 @@ from complianceiq.application.services.health import ReadinessService
 from complianceiq.domain.entities.auth import AuthContext
 from complianceiq.domain.exceptions import AuthenticationError
 from complianceiq.domain.ports.auth import TokenVerifier
+from complianceiq.domain.ports.core import CoreClient
 
 #: The scheme prefix on the Authorization header.
 _BEARER_PREFIX = "Bearer "
@@ -50,6 +51,9 @@ class Container(Protocol):
     @property
     def token_verifier(self) -> TokenVerifier: ...
 
+    @property
+    def core_client(self) -> CoreClient: ...
+
 
 def get_container(request: Request) -> Container:
     """Resolve the composition container attached to the app at startup."""
@@ -69,6 +73,24 @@ def get_readiness_service(request: Request) -> ReadinessService:
 def get_agents(request: Request) -> AgentSuite:
     """FastAPI dependency: the wired agent suite (the AI capabilities)."""
     return get_container(request).agents
+
+
+def get_core_client(request: Request) -> CoreClient:
+    """FastAPI dependency: the Core Service client (findings source)."""
+    return get_container(request).core_client
+
+
+def get_bearer_token(request: Request) -> str:
+    """FastAPI dependency: the caller's raw bearer token, to forward to the Core.
+
+    Authentication itself happens in :func:`get_auth_context`; this simply
+    surfaces the same token so a downstream Core call can be made on the caller's
+    behalf (end-to-end identity propagation).
+    """
+    header = request.headers.get("Authorization")
+    if not header or not header.startswith(_BEARER_PREFIX):
+        raise AuthenticationError("missing or malformed Authorization header")
+    return header[len(_BEARER_PREFIX) :].strip()
 
 
 def get_auth_context(request: Request) -> AuthContext:

@@ -55,6 +55,10 @@ COPY corpus ./corpus
 # relative to WORKDIR) so the workflows/agents load their prompts at startup.
 COPY prompts ./prompts
 
+# Ship the SQL migrations (applied out-of-band against CIQ_DATABASE_URL when
+# CIQ_VECTOR_STORE=pgvector; the in-memory default needs no database).
+COPY migrations ./migrations
+
 USER ciq
 EXPOSE 8000
 

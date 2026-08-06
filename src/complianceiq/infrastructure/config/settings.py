@@ -121,8 +121,17 @@ class Settings(BaseSettings):
     agent_max_iterations: int = Field(default=8, ge=1, le=100)
     agent_wall_clock_seconds: float = Field(default=60.0, gt=0)
 
-    # --- Core Service client (wired in Phase 6) ---
+    # --- Core Service client (Phase 6) ---
+    # `stub` uses the in-process seeded client (offline default); `http` calls the
+    # real Core over REST at core_api_base_url, forwarding the caller's JWT.
     core_api_base_url: str = "http://core-stub:9000"
+    core_client: str = "stub"
+    core_request_timeout_seconds: float = Field(default=10.0, gt=0)
+
+    # --- Vector store backend (Phase 6) ---
+    # `memory` is the offline default; `pgvector` uses PostgreSQL + pgvector at
+    # database_url (see ADR-0005 / migrations/).
+    vector_store: str = "memory"
 
     @property
     def is_production(self) -> bool:

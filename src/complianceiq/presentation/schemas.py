@@ -143,3 +143,11 @@ class ReportRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     findings: list[EnrichedFinding] = Field(min_length=0, max_length=1000)
+
+
+class EnrichByIdsRequest(BaseModel):
+    """Body for ``POST /ai/enrich/by-ids`` — finding ids to fetch from the Core."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    finding_ids: list[str] = Field(min_length=1, max_length=100)

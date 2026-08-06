@@ -24,6 +24,20 @@ from complianceiq.infrastructure.knowledge.reranker_lexical import LexicalRerank
 from complianceiq.infrastructure.knowledge.vector_store_memory import InMemoryVectorStore
 
 
+def _build_vector_store(settings: Settings) -> VectorStore:
+    """Select the vector store backend (``memory`` default, or ``pgvector``)."""
+    if settings.vector_store == "pgvector":
+        # Imported here so the psycopg driver is only required when selected.
+        from complianceiq.infrastructure.knowledge.pgvector_store import PgVectorStore
+        from complianceiq.infrastructure.knowledge.psycopg_executor import (
+            build_psycopg_executor,
+        )
+
+        executor = build_psycopg_executor(settings.database_url.get_secret_value())
+        return PgVectorStore(executor)
+    return InMemoryVectorStore()
+
+
 @dataclass(frozen=True, slots=True)
 class KnowledgeStack:
     """The wired retrieval subsystem."""
@@ -50,7 +64,7 @@ def build_knowledge_stack(settings: Settings, gateway: AIGateway) -> KnowledgeSt
         corpus_version=settings.knowledge_corpus_version,
     )
 
-    vector_store: VectorStore = InMemoryVectorStore()
+    vector_store: VectorStore = _build_vector_store(settings)
     keyword_index: KeywordIndex = InMemoryKeywordIndex()
     reranker = LexicalReranker()
     embedder: Embedder = GatewayEmbedder(gateway, feature="knowledge")
