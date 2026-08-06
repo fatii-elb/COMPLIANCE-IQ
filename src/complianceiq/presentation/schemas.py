@@ -12,6 +12,9 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from complianceiq.domain.entities.finding import EnrichedFinding, Finding
+from complianceiq.domain.value_objects.enums import Framework
+
 
 class ErrorBody(BaseModel):
     """The body of an :class:`ErrorEnvelope`."""
@@ -78,3 +81,65 @@ class VersionResponse(BaseModel):
     name: str
     version: str
     environment: str
+
+
+# --------------------------------------------------------------------------- #
+# AI capability request envelopes (Phase 5).
+#
+# The response shapes are the domain contracts themselves (EnrichedFinding,
+# CopilotAnswer, RemediationProposal, ReportDraft) — the Core Service integration
+# handoff treats those models as the canonical wire contract, so we return them
+# directly rather than duplicate-and-drift a second set of DTOs. The request
+# envelopes below just wrap those contract inputs.
+# --------------------------------------------------------------------------- #
+
+
+class EnrichRequest(BaseModel):
+    """Body for ``POST /ai/enrich`` — findings to explain and cite."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    findings: list[Finding] = Field(min_length=1, max_length=100)
+
+
+class AskRequest(BaseModel):
+    """Body for ``POST /ai/ask`` — a grounded natural-language question."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    question: str = Field(min_length=1, max_length=2000)
+    framework: Framework | None = Field(
+        default=None, description="Optional framework to scope retrieval to."
+    )
+
+
+class RemediateRequest(BaseModel):
+    """Body for ``POST /ai/remediate`` — one finding to propose a fix for."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    finding: Finding
+
+
+class CorrelateRequest(BaseModel):
+    """Body for ``POST /ai/correlate`` — findings to correlate as systemic risk."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    findings: list[Finding] = Field(min_length=1, max_length=100)
+
+
+class CorrelateResponse(BaseModel):
+    """Response for ``POST /ai/correlate`` — the grounded risk narrative."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    narrative: str
+
+
+class ReportRequest(BaseModel):
+    """Body for ``POST /ai/report`` — enriched findings to summarise."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    findings: list[EnrichedFinding] = Field(min_length=0, max_length=1000)

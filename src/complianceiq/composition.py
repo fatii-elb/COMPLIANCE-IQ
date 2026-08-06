@@ -20,6 +20,7 @@ from fastapi import FastAPI
 
 from complianceiq import __version__
 from complianceiq.application.agents import (
+    AgentSuite,
     ComplianceAnalystAgent,
     RemediationEngineerAgent,
     ReportWriterAgent,
@@ -37,8 +38,10 @@ from complianceiq.application.graphs import (
 from complianceiq.application.prompts.registry import PromptRegistry
 from complianceiq.application.services.health import ReadinessService
 from complianceiq.application.tools import AgentBudget, ToolRegistry, build_corpus_tools
+from complianceiq.domain.ports.auth import TokenVerifier
 from complianceiq.domain.ports.clock import Clock
 from complianceiq.domain.ports.health import HealthProbe
+from complianceiq.infrastructure.auth import build_token_verifier
 from complianceiq.infrastructure.clock import SystemClock
 from complianceiq.infrastructure.config.settings import Settings, get_settings
 from complianceiq.infrastructure.gateway import (
@@ -65,24 +68,6 @@ from complianceiq.presentation.app import create_app
 
 
 @dataclass(frozen=True, slots=True)
-class AgentSuite:
-    """The Phase 4 AI capabilities — bounded agents over graphs and tools.
-
-    Grouped so the composition root and presentation layer have one handle for
-    the whole workflow/agent subsystem. ``prompts`` and ``tools`` are exposed for
-    introspection (e.g. an admin endpoint listing available prompts/tools).
-    """
-
-    prompts: PromptRegistry
-    tools: ToolRegistry
-    copilot: CopilotGraph
-    compliance_analyst: ComplianceAnalystAgent
-    remediation_engineer: RemediationEngineerAgent
-    report_writer: ReportWriterAgent
-    risk_analyst: RiskAnalystAgent
-
-
-@dataclass(frozen=True, slots=True)
 class ApplicationContainer:
     """The wired object graph.
 
@@ -99,6 +84,7 @@ class ApplicationContainer:
     ai_gateway: AIGateway
     knowledge: KnowledgeStack
     agents: AgentSuite
+    token_verifier: TokenVerifier
 
 
 def build_agent_suite(
@@ -228,6 +214,16 @@ def build_container(settings: Settings | None = None) -> ApplicationContainer:
     # bounded agents that expose each capability under hard budgets.
     agents = build_agent_suite(settings, gateway=ai_gateway, knowledge=knowledge, clock=clock)
 
+    # --- Authentication (Phase 5) ---
+    # HS256 token verification for local dev/testing; Phase 6 swaps in the Core's
+    # asymmetric public key behind the same TokenVerifier port.
+    token_verifier = build_token_verifier(
+        secret=settings.jwt_hs256_secret.get_secret_value(),
+        issuer=settings.jwt_issuer,
+        audience=settings.jwt_audience,
+        clock=clock,
+    )
+
     # Readiness includes a shallow probe per provider plus the vector store.
     probes: list[HealthProbe] = [
         LLMProviderHealthProbe(provider) for provider in providers.values()
@@ -249,6 +245,7 @@ def build_container(settings: Settings | None = None) -> ApplicationContainer:
         ai_gateway=ai_gateway,
         knowledge=knowledge,
         agents=agents,
+        token_verifier=token_verifier,
     )
 
 

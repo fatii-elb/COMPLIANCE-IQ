@@ -18,8 +18,15 @@ from typing import Protocol
 
 from fastapi import Request
 
+from complianceiq.application.agents import AgentSuite
 from complianceiq.application.app_info import AppInfo
 from complianceiq.application.services.health import ReadinessService
+from complianceiq.domain.entities.auth import AuthContext
+from complianceiq.domain.exceptions import AuthenticationError
+from complianceiq.domain.ports.auth import TokenVerifier
+
+#: The scheme prefix on the Authorization header.
+_BEARER_PREFIX = "Bearer "
 
 
 class Container(Protocol):
@@ -37,6 +44,12 @@ class Container(Protocol):
     @property
     def readiness_service(self) -> ReadinessService: ...
 
+    @property
+    def agents(self) -> AgentSuite: ...
+
+    @property
+    def token_verifier(self) -> TokenVerifier: ...
+
 
 def get_container(request: Request) -> Container:
     """Resolve the composition container attached to the app at startup."""
@@ -51,3 +64,28 @@ def get_app_info(request: Request) -> AppInfo:
 def get_readiness_service(request: Request) -> ReadinessService:
     """FastAPI dependency: the readiness use case."""
     return get_container(request).readiness_service
+
+
+def get_agents(request: Request) -> AgentSuite:
+    """FastAPI dependency: the wired agent suite (the AI capabilities)."""
+    return get_container(request).agents
+
+
+def get_auth_context(request: Request) -> AuthContext:
+    """FastAPI dependency: authenticate the caller and return their context.
+
+    Reads the ``Authorization: Bearer <token>`` header and verifies it via the
+    wired :class:`TokenVerifier`. The returned :class:`AuthContext` carries the
+    tenant every downstream call is scoped by (non-negotiable rule 1).
+
+    Raises:
+        AuthenticationError: If the header is missing/malformed or the token
+            fails verification (mapped to HTTP 401 by the error handlers).
+    """
+    header = request.headers.get("Authorization")
+    if not header or not header.startswith(_BEARER_PREFIX):
+        raise AuthenticationError("missing or malformed Authorization header")
+    token = header[len(_BEARER_PREFIX) :].strip()
+    if not token:
+        raise AuthenticationError("empty bearer token")
+    return get_container(request).token_verifier.verify(token)

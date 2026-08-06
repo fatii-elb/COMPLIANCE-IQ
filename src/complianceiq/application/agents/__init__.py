@@ -17,8 +17,10 @@ from complianceiq.application.agents.compliance_analyst import ComplianceAnalyst
 from complianceiq.application.agents.remediation_engineer import RemediationEngineerAgent
 from complianceiq.application.agents.report_writer import ReportWriterAgent
 from complianceiq.application.agents.risk_analyst import RiskAnalystAgent
+from complianceiq.application.agents.suite import AgentSuite
 
 __all__ = [
+    "AgentSuite",
     "BoundedAgent",
     "ComplianceAnalystAgent",
     "RemediationEngineerAgent",

@@ -70,6 +70,11 @@ class Settings(BaseSettings):
     jwt_audience: str = "complianceiq"
     jwt_issuer: str = "complianceiq-core"
     jwt_public_key: SecretStr = SecretStr("")
+    # Phase 5 uses a symmetric HS256 verifier for local dev/testing; Phase 6
+    # swaps in the Core's asymmetric public key (jwt_public_key) behind the same
+    # TokenVerifier port. This shared secret both mints (Core, in dev) and
+    # verifies HS256 tokens.
+    jwt_hs256_secret: SecretStr = SecretStr("dev-insecure-hs256-secret-change-me")
 
     # --- Database (wired in Phase 6) ---
     database_url: SecretStr = SecretStr(

@@ -6,6 +6,29 @@ adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added — Phase 5: Presentation / HTTP API
+- **AI capability endpoints** under `/api/v1/ai`, exposing the Phase-4 agents:
+  `POST /enrich` (→ `[EnrichedFinding]`), `POST /ask` (→ `CopilotAnswer`),
+  `POST /remediate` (→ `RemediationProposal`, `approved:false`), `POST /correlate`
+  (→ grounded narrative), `POST /report` (→ `ReportDraft`). Response shapes are the
+  domain contracts themselves (no drift); only thin request envelopes are added.
+- **Authentication seam**: a `TokenVerifier` port with a dependency-free **HS256**
+  verifier (Phase 5, dev/testing) that validates signature + `exp`/`nbf`/`iss`/`aud`
+  and projects `sub`/`tenant_id`/`roles` into an `AuthContext`. Algorithm is pinned
+  (rejects the `none`-downgrade / algorithm-confusion attack), signature comparison
+  is constant-time, and errors never leak the token or secret. Phase 6 swaps in the
+  Core's asymmetric RS256/ES256 key behind the same port.
+- **Tenant isolation at the boundary**: every AI endpoint is JWT-protected; any
+  finding whose `tenant_id` differs from the token's is rejected with
+  `403 tenant_isolation_violation` (rule 1).
+- `Container` protocol extended with `agents` and `token_verifier`; `AgentSuite`
+  moved into the application layer so presentation can depend on it without crossing
+  into composition. New `get_auth_context`/`get_agents` FastAPI dependencies.
+- `CIQ_JWT_HS256_SECRET` setting (+ `.env.example`); ADR-0009; `docs/API.md`.
+- New tests (auth verifier incl. security-critical rejections; end-to-end endpoint
+  tests over the fake provider + sample corpus) — 218 total, ~95% coverage;
+  mypy --strict and the four architecture contracts remain clean.
+
 ### Added — Phase 4: LangGraph Workflows & Agents
 - Four explicit **LangGraph** state graphs (typed state, injected bound-method
   nodes, declared edges, per-node timeout, and a `trace` channel): `EnrichmentGraph`
