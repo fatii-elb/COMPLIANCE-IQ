@@ -22,6 +22,8 @@ from complianceiq import __version__
 from complianceiq.application.agents import (
     AgentSuite,
     ComplianceAnalystAgent,
+    ControlMapperAgent,
+    FinancialAnalystAgent,
     RemediationEngineerAgent,
     ReportWriterAgent,
     RiskAnalystAgent,
@@ -32,6 +34,8 @@ from complianceiq.application.gateway.config import GatewayConfig
 from complianceiq.application.graphs import (
     CopilotGraph,
     EnrichmentGraph,
+    FinancialGraph,
+    MappingGraph,
     RemediationGraph,
     ReportGraph,
 )
@@ -140,6 +144,15 @@ def build_agent_suite(
         logger=logger,
     )
     report_graph = ReportGraph(gateway=gateway, prompts=prompts, clock=clock, logger=logger)
+    mapping_graph = MappingGraph(
+        retriever=knowledge.retriever,
+        assembler=knowledge.assembler,
+        gateway=gateway,
+        prompts=prompts,
+        config=knowledge.config,
+        logger=logger,
+    )
+    financial_graph = FinancialGraph(gateway=gateway, prompts=prompts, logger=logger)
 
     tools = ToolRegistry(
         build_corpus_tools(knowledge.retriever, knowledge.assembler, knowledge.config)
@@ -165,6 +178,12 @@ def build_agent_suite(
             config=knowledge.config,
             clock=clock,
             budget=budget,
+        ),
+        control_mapper=ControlMapperAgent(
+            graph=mapping_graph, registry=tools, clock=clock, budget=budget
+        ),
+        financial_analyst=FinancialAnalystAgent(
+            graph=financial_graph, registry=tools, clock=clock, budget=budget
         ),
     )
 

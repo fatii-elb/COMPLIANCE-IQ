@@ -9,6 +9,7 @@ from complianceiq.domain.entities.auth import AuthContext
 from complianceiq.domain.entities.copilot import CopilotAnswer
 from complianceiq.domain.entities.financial import FinancialRiskAssessment
 from complianceiq.domain.entities.finding import EnrichedFinding, Finding
+from complianceiq.domain.entities.mapping import ControlMapping, MappedControl
 from complianceiq.domain.entities.pagination import Page
 from complianceiq.domain.entities.remediation import RemediationProposal
 from complianceiq.domain.entities.report import ReportDraft
@@ -19,11 +20,13 @@ from complianceiq.domain.entities.score import ComplianceScore
 __all__ = [
     "AuthContext",
     "ComplianceScore",
+    "ControlMapping",
     "CopilotAnswer",
     "CorrelatedRisk",
     "EnrichedFinding",
     "FinancialRiskAssessment",
     "Finding",
+    "MappedControl",
     "NormalizedResource",
     "Page",
     "RemediationProposal",

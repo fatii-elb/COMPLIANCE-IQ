@@ -7,6 +7,7 @@ tested — is what lets the non-negotiable rules be enforced *structurally* rath
 than by convention.
 """
 
+from complianceiq.domain.policies.financial_model import ExposureBand, estimate_exposure
 from complianceiq.domain.policies.grounding import (
     ABSTENTION_TEXT,
     CitationVerification,
@@ -24,9 +25,11 @@ from complianceiq.domain.policies.tenant_isolation import assert_same_tenant
 __all__ = [
     "ABSTENTION_TEXT",
     "CitationVerification",
+    "ExposureBand",
     "InjectionScanResult",
     "InjectionSignal",
     "assert_same_tenant",
+    "estimate_exposure",
     "scan_for_injection",
     "validate_terraform",
     "verify_citations",

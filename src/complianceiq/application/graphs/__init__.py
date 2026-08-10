@@ -13,7 +13,16 @@ and every run emits a trace.
 
 from complianceiq.application.graphs.copilot import CopilotGraph
 from complianceiq.application.graphs.enrichment import EnrichmentGraph
+from complianceiq.application.graphs.financial import FinancialGraph
+from complianceiq.application.graphs.mapping import MappingGraph
 from complianceiq.application.graphs.remediation import RemediationGraph
 from complianceiq.application.graphs.report import ReportGraph
 
-__all__ = ["CopilotGraph", "EnrichmentGraph", "RemediationGraph", "ReportGraph"]
+__all__ = [
+    "CopilotGraph",
+    "EnrichmentGraph",
+    "FinancialGraph",
+    "MappingGraph",
+    "RemediationGraph",
+    "ReportGraph",
+]

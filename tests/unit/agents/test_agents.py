@@ -205,6 +205,44 @@ async def test_risk_analyst_uses_bounded_tool_layer() -> None:
     assert len(gateway.requests) == 1
 
 
+async def test_control_mapper_maps_across_frameworks() -> None:
+    from complianceiq.application.agents.control_mapper import ControlMapperAgent
+    from complianceiq.application.graphs.mapping import MappingGraph
+    from complianceiq.domain.value_objects.enums import Framework
+
+    gateway = FakeGateway(reply="SOC 2 CC6.1 maps to NIST PR.AA-01 [1].")
+    retriever, assembler, config = await build_retrieval_stack()
+    graph = MappingGraph(
+        retriever=retriever,
+        assembler=assembler,
+        gateway=gateway,
+        prompts=load_prompt_registry(),
+        config=config,
+    )
+    agent = ControlMapperAgent(graph=graph, registry=ToolRegistry(), clock=FrozenClock())
+    mapping = await agent.map(make_finding(framework=Framework.SOC_2, control_id="CC6.1"), AUTH)
+    assert mapping.citation_verified is True
+    assert mapping.mappings
+
+
+async def test_financial_analyst_assesses_in_mad() -> None:
+    from decimal import Decimal
+
+    from complianceiq.application.agents.financial_analyst import FinancialAnalystAgent
+    from complianceiq.application.graphs.financial import FinancialGraph
+    from complianceiq.domain.value_objects.enums import RiskDomain, Severity
+
+    gateway = FakeGateway(reply="Exposure reflects severity and data sensitivity.")
+    graph = FinancialGraph(gateway=gateway, prompts=load_prompt_registry())
+    agent = FinancialAnalystAgent(graph=graph, registry=ToolRegistry(), clock=FrozenClock())
+    assessment = await agent.assess(
+        make_finding(severity=Severity.CRITICAL, domain=RiskDomain.STORAGE), AUTH
+    )
+    assert assessment.min_mad == Decimal("975000")
+    assert assessment.max_mad == Decimal("5200000")
+    assert assessment.finding_id == "finding-1"
+
+
 async def test_risk_analyst_abstains_without_findings() -> None:
     retriever, assembler, config = await build_retrieval_stack()
     tools = ToolRegistry(build_corpus_tools(retriever, assembler, config))

@@ -150,6 +150,54 @@ def test_report_drafts_over_enriched_findings(client: TestClient) -> None:
     assert body["tenant_id"] == "tenant-a"
 
 
+def test_map_returns_control_mapping(client: TestClient) -> None:
+    # A SOC 2 finding over the (multi-framework) shipped corpus yields cross-
+    # framework equivalents.
+    r = client.post(
+        "/api/v1/ai/map",
+        json={"finding": _finding() | {"framework": "soc_2", "control_id": "CC6.1"}},
+        headers=bearer(mint_token()),
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["source_framework"] == "soc_2"
+    assert "citation_verified" in body
+    assert isinstance(body["mappings"], list)
+
+
+def test_map_cross_tenant_is_blocked(client: TestClient) -> None:
+    r = client.post(
+        "/api/v1/ai/map",
+        json={"finding": _finding(tenant_id="tenant-b")},
+        headers=bearer(mint_token(tenant_id="tenant-a")),
+    )
+    assert r.status_code == 403
+
+
+def test_financial_returns_mad_range(client: TestClient) -> None:
+    r = client.post(
+        "/api/v1/ai/financial",
+        json={"finding": _finding()},
+        headers=bearer(mint_token()),
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert int(body["min_mad"]) >= 0
+    assert int(body["max_mad"]) >= int(body["min_mad"])
+    assert body["finding_id"] == "finding-1"
+    assert body["assumptions"]
+    assert body["rationale"]
+
+
+def test_financial_cross_tenant_is_blocked(client: TestClient) -> None:
+    r = client.post(
+        "/api/v1/ai/financial",
+        json={"finding": _finding(tenant_id="tenant-b")},
+        headers=bearer(mint_token(tenant_id="tenant-a")),
+    )
+    assert r.status_code == 403
+
+
 def test_validation_error_on_empty_findings(client: TestClient) -> None:
     r = client.post(
         "/api/v1/ai/enrich",

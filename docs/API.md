@@ -73,6 +73,24 @@ Correlate findings into one grounded systemic-risk narrative.
 - **Body:** `{ "findings": [Finding, …] }` (1–100)
 - **Response:** `{ "narrative": "…" }`
 
+### `POST /api/v1/ai/map`
+Map a finding's control to equivalent controls in other frameworks.
+
+- **Body:** `{ "finding": Finding }`
+- **Response:** `ControlMapping` — `{ finding_id, source_framework, source_control_id,
+  summary, mappings: [{framework, control_id, reference}], citations, citation_verified }`.
+  Each mapped control is a **retrieved, verified** control in a *different* framework;
+  when nothing relevant is found, the mapping abstains (`citation_verified: false`).
+
+### `POST /api/v1/ai/financial`
+Quantify a finding's monetary exposure in Moroccan Dirham (MAD).
+
+- **Body:** `{ "finding": Finding }`
+- **Response:** `FinancialRiskAssessment` — `{ finding_id, min_mad, max_mad, rationale,
+  assumptions }`. The **range is computed deterministically** from the finding's
+  severity and domain (never by the model); the model only writes the rationale.
+  Always a range, never a point estimate; a passing finding yields `0–0`.
+
 ### `POST /api/v1/ai/report`
 Draft an executive summary over enriched findings.
 
@@ -80,9 +98,7 @@ Draft an executive summary over enriched findings.
 - **Response:** `ReportDraft` — `{ tenant_id, executive_summary, finding_count,
   severity_breakdown, generated_at }`. Counts are computed in code, not by the model.
 
-> `POST /ai/map` and `POST /ai/financial` are **not yet exposed** — those
-> capabilities land in Phase 7. `/ai/report` is synchronous today; the async-job
-> variant is a later refinement.
+> `/ai/report` is synchronous today; the async-job variant is a later refinement.
 
 ## Errors
 

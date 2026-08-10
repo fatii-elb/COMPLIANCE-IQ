@@ -13,6 +13,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from complianceiq.application.agents.compliance_analyst import ComplianceAnalystAgent
+from complianceiq.application.agents.control_mapper import ControlMapperAgent
+from complianceiq.application.agents.financial_analyst import FinancialAnalystAgent
 from complianceiq.application.agents.remediation_engineer import RemediationEngineerAgent
 from complianceiq.application.agents.report_writer import ReportWriterAgent
 from complianceiq.application.agents.risk_analyst import RiskAnalystAgent
@@ -37,3 +39,5 @@ class AgentSuite:
     remediation_engineer: RemediationEngineerAgent
     report_writer: ReportWriterAgent
     risk_analyst: RiskAnalystAgent
+    control_mapper: ControlMapperAgent
+    financial_analyst: FinancialAnalystAgent

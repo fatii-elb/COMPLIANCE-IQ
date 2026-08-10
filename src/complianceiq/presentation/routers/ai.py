@@ -22,7 +22,9 @@ from fastapi import APIRouter, Depends
 from complianceiq.application.agents import AgentSuite
 from complianceiq.domain.entities.auth import AuthContext
 from complianceiq.domain.entities.copilot import CopilotAnswer
+from complianceiq.domain.entities.financial import FinancialRiskAssessment
 from complianceiq.domain.entities.finding import EnrichedFinding, Finding
+from complianceiq.domain.entities.mapping import ControlMapping
 from complianceiq.domain.entities.remediation import RemediationProposal
 from complianceiq.domain.entities.report import ReportDraft
 from complianceiq.domain.knowledge.metadata import MetadataFilter
@@ -40,6 +42,8 @@ from complianceiq.presentation.schemas import (
     CorrelateResponse,
     EnrichByIdsRequest,
     EnrichRequest,
+    FinancialRequest,
+    MapRequest,
     RemediateRequest,
     ReportRequest,
 )
@@ -125,6 +129,32 @@ async def correlate(
     _assert_tenant(body.findings, auth)
     narrative = await agents.risk_analyst.correlate(body.findings, auth)
     return CorrelateResponse(narrative=narrative)
+
+
+@router.post("/map", response_model=ControlMapping, summary="Map a control across frameworks")
+async def map_control(
+    body: MapRequest,
+    auth: AuthContext = Depends(get_auth_context),
+    agents: AgentSuite = Depends(get_agents),
+) -> ControlMapping:
+    """Map a finding's control to equivalent controls in other frameworks."""
+    _assert_tenant([body.finding], auth)
+    return await agents.control_mapper.map(body.finding, auth)
+
+
+@router.post(
+    "/financial",
+    response_model=FinancialRiskAssessment,
+    summary="Quantify financial exposure (MAD)",
+)
+async def financial(
+    body: FinancialRequest,
+    auth: AuthContext = Depends(get_auth_context),
+    agents: AgentSuite = Depends(get_agents),
+) -> FinancialRiskAssessment:
+    """Estimate a finding's monetary exposure range in MAD (deterministic + narrated)."""
+    _assert_tenant([body.finding], auth)
+    return await agents.financial_analyst.assess(body.finding, auth)
 
 
 @router.post("/report", response_model=ReportDraft, summary="Draft an executive report")

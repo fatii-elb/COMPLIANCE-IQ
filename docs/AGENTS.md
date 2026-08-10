@@ -57,8 +57,21 @@ and is exposed on the `AgentSuite` (wired in the composition root).
 | `RemediationEngineerAgent` | `propose(finding, auth) → RemediationProposal` | `RemediationGraph` | none |
 | `ReportWriterAgent` | `write(findings, auth) → ReportDraft` | `ReportGraph` | none |
 | `RiskAnalystAgent` | `correlate(findings, auth) → str` | `search_corpus` tool + gateway synthesis | `search_corpus` |
+| `ControlMapperAgent` | `map(finding, auth) → ControlMapping` | `MappingGraph` | none |
+| `FinancialAnalystAgent` | `assess(finding, auth) → FinancialRiskAssessment` | `FinancialGraph` | none |
 
 `CopilotGraph` is also exposed on the suite (`agents.copilot`) for direct Q&A.
+
+Two Phase-7 workflows join the four Phase-4 graphs:
+
+- **`MappingGraph`** (`retrieve → map | abstain`) — maps a finding's control to
+  **equivalent controls in other frameworks**, grounded like enrichment: each mapped
+  control is a retrieved, *verified* citation in a *different* framework than the
+  source; an empty retrieval abstains without calling the model.
+- **`FinancialGraph`** (`estimate → narrate`) — the monetary range is **computed in
+  code** (`estimate_exposure`, a deterministic domain policy over severity + domain),
+  and the model only *narrates* it, told never to invent a figure. Same "facts in
+  code, prose from the model" discipline as the report graph.
 
 ## The guardrails (`ToolSession`)
 

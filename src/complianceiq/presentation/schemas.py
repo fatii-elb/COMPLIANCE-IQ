@@ -151,3 +151,19 @@ class EnrichByIdsRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     finding_ids: list[str] = Field(min_length=1, max_length=100)
+
+
+class MapRequest(BaseModel):
+    """Body for ``POST /ai/map`` — a finding to map across frameworks."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    finding: Finding
+
+
+class FinancialRequest(BaseModel):
+    """Body for ``POST /ai/financial`` — a finding to price in MAD."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    finding: Finding

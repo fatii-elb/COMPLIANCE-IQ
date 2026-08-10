@@ -1,0 +1,8 @@
+# Code ownership for the AI subsystem. The AI Service is owned entirely by the
+# AI engineer; the Core Service (scanning, rule engine, scoring, auth issuance)
+# is a separate repository owned by the platform engineer.
+*                           @ai-service-owner
+
+# Non-negotiable safety-critical areas — changes here warrant extra scrutiny.
+/src/complianceiq/domain/policies/       @ai-service-owner
+/src/complianceiq/domain/entities/remediation.py  @ai-service-owner

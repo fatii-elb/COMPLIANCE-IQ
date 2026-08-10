@@ -6,6 +6,29 @@ adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added — Phase 7: Control mapping & financial risk
+- **Control mapping** (`POST /api/v1/ai/map`): a `MappingGraph` + `ControlMapperAgent`
+  that map a finding's control to **equivalent controls in other frameworks**,
+  grounded like enrichment — each mapped control is a retrieved, *verified* citation
+  in a *different* framework than the source; empty retrieval abstains without calling
+  the model. New `ControlMapping`/`MappedControl` domain contracts.
+- **Financial risk** (`POST /api/v1/ai/financial`): a deterministic domain policy
+  `estimate_exposure` computes a monetary **range in MAD** from the finding's severity
+  and domain (per-severity base bands × per-domain multiplier; a passing finding →
+  `0–0`), returning explicit **assumptions**; a `FinancialGraph` + `FinancialAnalystAgent`
+  let the model only *narrate* the pre-computed range (never invent a figure), filling
+  the existing `FinancialRiskAssessment` contract.
+- Two new prompts (`control_mapping`, `financial_rationale`); `AgentSuite` gains
+  `control_mapper` and `financial_analyst`; both wired in `build_agent_suite`.
+- Presentation: `MapRequest`/`FinancialRequest` envelopes; `/map` and `/financial`
+  endpoints (JWT-protected, tenant-scoped); `docs/API.md`, `docs/AGENTS.md`, and
+  ADR-0012 updated.
+- New offline tests (deterministic financial model incl. banding/multiplier/pass-zero;
+  mapping graph incl. cross-framework filtering + abstain; financial graph incl.
+  model-independent numbers + fallback; agents; `/map` and `/financial` endpoints) —
+  268 total, ~95% coverage; mypy --strict and the four architecture contracts remain
+  clean.
+
 ### Added — Phase 6: Core Service client, RS256 auth, pgvector
 - **Core Service client**: a `CoreClient` port with a seeded in-process
   `StubCoreClient` (offline default) and an `HttpCoreClient` (httpx) that calls the
