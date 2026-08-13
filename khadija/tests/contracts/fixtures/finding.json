@@ -1,0 +1,22 @@
+{
+  "id": "acme:111111111111:user-1:iam-user-no-mfa:2026-06-01T12:00:00+00:00",
+  "tenant_id": "acme",
+  "resource_id": "user-1",
+  "rule_id": "iam-user-no-mfa",
+  "framework": "iso_27001",
+  "control_id": "A.8.24",
+  "domain": "iam",
+  "status": "fail",
+  "severity": "high",
+  "evidence": {
+    "checked": true,
+    "resource": "user-1"
+  },
+  "detected_at": "2026-06-01T12:00:00Z",
+  "region": "us-east-1",
+  "account_id": "111111111111",
+  "scan_key": "acme|aws|111111111111|-|2026-06-01T12:00:00+00:00",
+  "logical_finding_id": "acme:111111111111:user-1:iam-user-no-mfa",
+  "risk": null,
+  "confidence": null
+}
