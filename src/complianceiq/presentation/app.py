@@ -17,7 +17,7 @@ from fastapi import FastAPI
 from complianceiq import __version__
 from complianceiq.presentation.container import Container
 from complianceiq.presentation.errors import register_exception_handlers
-from complianceiq.presentation.routers import ai, health
+from complianceiq.presentation.routers import ai, findings, health
 
 #: A startup hook is a zero-arg coroutine run once when the app boots (e.g. to
 #: seed the corpus). Built by the composition root; presentation just runs them.
@@ -68,5 +68,7 @@ def create_app(container: Container, *, on_startup: Sequence[StartupHook] | None
     app.include_router(health.router)
     # AI capabilities live under /api/v1/ai (JWT-protected, tenant-scoped).
     app.include_router(ai.router)
+    # Read-only findings, surfacing the Core client (JWT-protected, tenant-scoped).
+    app.include_router(findings.router)
 
     return app

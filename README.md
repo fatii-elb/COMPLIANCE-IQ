@@ -209,6 +209,19 @@ precision/recall over a golden set — making the core guarantee a measured,
 gate-able number. See [`docs/OBSERVABILITY.md`](docs/OBSERVABILITY.md),
 [ADR-0013](docs/ADR/0013-observability-and-answer-quality-evaluation.md).
 
+### Web console (Frontend)
+A professional, enterprise GRC **web console** ships in [`frontend/`](frontend/)
+and is served by this same service at `/` (same origin — no CORS). It consumes
+the real API: JWT sign-in, findings list/detail, and all eight AI capabilities
+(explain, ask, remediate, correlate, map, financial, report), with grounded
+citations and abstention surfaced in the UI. Start the service and open
+`http://localhost:8000/`. See the frontend docs:
+[`docs/frontend/README.md`](docs/frontend/README.md) (overview + dev/client
+perspectives), [`ARCHITECTURE.md`](docs/frontend/ARCHITECTURE.md),
+[`CLIENT_TESTING_GUIDE.md`](docs/frontend/CLIENT_TESTING_GUIDE.md),
+[`ACCEPTANCE_CHECKLIST.md`](docs/frontend/ACCEPTANCE_CHECKLIST.md), and
+[`DEMO_SCRIPT.md`](docs/frontend/DEMO_SCRIPT.md).
+
 ## Data schemas
 
 All models are **Pydantic v2**, immutable (`frozen`), and reject unknown fields

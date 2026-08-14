@@ -21,6 +21,7 @@ from fastapi import Request
 from complianceiq.application.agents import AgentSuite
 from complianceiq.application.app_info import AppInfo
 from complianceiq.application.services.health import ReadinessService
+from complianceiq.application.services.observability import ObservabilityService
 from complianceiq.domain.entities.auth import AuthContext
 from complianceiq.domain.exceptions import AuthenticationError
 from complianceiq.domain.ports.auth import TokenVerifier
@@ -54,6 +55,9 @@ class Container(Protocol):
     @property
     def core_client(self) -> CoreClient: ...
 
+    @property
+    def observability(self) -> ObservabilityService: ...
+
 
 def get_container(request: Request) -> Container:
     """Resolve the composition container attached to the app at startup."""
@@ -78,6 +82,11 @@ def get_agents(request: Request) -> AgentSuite:
 def get_core_client(request: Request) -> CoreClient:
     """FastAPI dependency: the Core Service client (findings source)."""
     return get_container(request).core_client
+
+
+def get_observability(request: Request) -> ObservabilityService:
+    """FastAPI dependency: the observability service (metrics exposition)."""
+    return get_container(request).observability
 
 
 def get_bearer_token(request: Request) -> str:

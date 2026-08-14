@@ -66,6 +66,19 @@ class Settings(BaseSettings):
     port: int = Field(default=8000, ge=1, le=65535)
     request_max_bytes: int = Field(default=1_048_576, ge=1_024)
 
+    # --- Frontend / developer affordances ---
+    # Serve the bundled single-page frontend (``frontend/``) from this app at the
+    # same origin (no CORS needed). Static assets only; the API is unchanged.
+    serve_frontend: bool = True
+    # Expose ``POST /api/v1/auth/dev-token`` to mint short-lived HS256 tokens for
+    # local testing. Gated to non-production environments and refuses to run in
+    # production even if forced on — never a way to bypass real auth.
+    enable_dev_login: bool = True
+    # Seed the in-process Core stub with a richer, realistic demo dataset (a
+    # superset of the canonical sample) so the frontend has meaningful findings to
+    # render offline. Ignored when ``core_client == "http"``.
+    core_demo_seed: bool = True
+
     # --- Security / auth (verification only; Core Service issues tokens) ---
     jwt_audience: str = "complianceiq"
     jwt_issuer: str = "complianceiq-core"

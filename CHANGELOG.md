@@ -6,6 +6,27 @@ adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added — Phase 8: Observability, evaluation & release-readiness
+- **Metrics subsystem**: a `MetricsSink` domain port with an in-memory adapter
+  (counters + summaries) that renders **Prometheus** text; a `MetricsMiddleware`
+  recording `http_requests_total` and `http_request_duration_ms` per matched route
+  (best-effort, bounded cardinality); and a `GET /metrics` endpoint exposing those
+  series plus `ai_gateway_*` gauges (calls, cache hits, tokens, cost) derived from
+  the usage ledger. Operational and unauthenticated — aggregates only, no per-tenant
+  data. A real exporter swaps in behind the port.
+- **Answer-grounding evaluation harness**: `GroundingEvaluator` scores grounded rate,
+  abstention rate, and citation precision/recall over a golden finding set — making
+  the grounding guarantee (rule 3) a measured, gate-able number. Runnable via
+  `python -m scripts.evaluate_ai [--json]`; offline (fake provider + bundled corpus).
+- `ObservabilityService` (application) composes the metrics exposition + AI-usage
+  totals behind narrow protocols; `UsageLedger` gains an aggregate `totals()` view;
+  container exposes `observability` and `metrics`; new `get_observability` dependency.
+- Docs: `docs/OBSERVABILITY.md`, `docs/RELEASE_READINESS.md` (every non-negotiable
+  rule → enforcement → verification, quality gates, deploy-time settings), ADR-0013.
+- New offline tests (metrics adapter + Prometheus render; middleware + `/metrics`
+  endpoint; grounding evaluator incl. precision/recall math + real-graph run) — 282
+  total, ~95% coverage; mypy --strict and the four architecture contracts remain clean.
+
 ### Added — Phase 7: Control mapping & financial risk
 - **Control mapping** (`POST /api/v1/ai/map`): a `MappingGraph` + `ControlMapperAgent`
   that map a finding's control to **equivalent controls in other frameworks**,

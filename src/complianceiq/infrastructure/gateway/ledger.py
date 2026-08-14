@@ -41,3 +41,17 @@ class InMemoryUsageLedger(UsageLedger):
     def total_tokens(self, tenant_id: str) -> int:
         """Total tokens (input + output) recorded for a tenant."""
         return sum(e.usage.total_tokens for e in self._events if e.tenant_id == tenant_id)
+
+    def totals(self) -> dict[str, object]:
+        """Aggregate, non-tenant-scoped usage totals (for operational metrics)."""
+        input_tokens = sum(e.usage.input_tokens for e in self._events)
+        output_tokens = sum(e.usage.output_tokens for e in self._events)
+        cost_usd = sum((e.cost_usd for e in self._events), Decimal(0))
+        cache_hits = sum(1 for e in self._events if e.cached)
+        return {
+            "calls": len(self._events),
+            "cache_hits": cache_hits,
+            "input_tokens": input_tokens,
+            "output_tokens": output_tokens,
+            "cost_usd": str(cost_usd),
+        }

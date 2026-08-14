@@ -11,10 +11,16 @@ without credentials) and tenant-agnostic. They expose no customer data.
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Response
+from fastapi.responses import PlainTextResponse
 
 from complianceiq.application.app_info import AppInfo
 from complianceiq.application.services.health import ReadinessService
-from complianceiq.presentation.container import get_app_info, get_readiness_service
+from complianceiq.application.services.observability import ObservabilityService
+from complianceiq.presentation.container import (
+    get_app_info,
+    get_observability,
+    get_readiness_service,
+)
 from complianceiq.presentation.schemas import (
     ComponentHealth,
     HealthResponse,
@@ -65,3 +71,21 @@ async def version(app_info: AppInfo = Depends(get_app_info)) -> VersionResponse:
         version=app_info.version,
         environment=app_info.environment,
     )
+
+
+@router.get(
+    "/metrics",
+    response_class=PlainTextResponse,
+    summary="Prometheus metrics",
+    include_in_schema=False,
+)
+async def metrics(
+    observability: ObservabilityService = Depends(get_observability),
+) -> PlainTextResponse:
+    """Expose request and AI-usage metrics in the Prometheus text format.
+
+    Operational and tenant-agnostic (like the health probes): it carries only
+    aggregate counters — request counts/latencies and total tokens/cost — never
+    per-tenant data.
+    """
+    return PlainTextResponse(content=observability.prometheus())
